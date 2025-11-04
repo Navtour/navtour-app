@@ -1,7 +1,7 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { View, Platform } from 'react-native';
 import { Logo } from '@/components/ui/Logo';
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -39,11 +39,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="vibe"
+        name="favorites"
         options={{
-          title: 'Vibe',
+          title: 'Favoritos',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="flash" size={22} color={color} />
+            <Ionicons name="heart" size={22} color={color} />
           ),
         }}
       />
@@ -70,7 +70,7 @@ export default function TabLayout() {
                 elevation: 6,
               }}
             >
-              <Logo variant='short' size={32} color={'secondary'}/>
+              <Logo variant='short' size={32} color={'secondary'} />
             </View>
           ),
         }}
