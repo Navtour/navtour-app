@@ -251,6 +251,10 @@ export default function ExploreScreen() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 className="bg-white rounded-card shadow-card"
+                onPress={() => router.push({
+                  pathname: "/details",
+                  params: { id: "123" }
+                })}
                 style={{ width: ITEM_WIDTH, height: ITEM_WIDTH }}
               >
                 <View className="flex-1 bg-primary/10 rounded-t-card items-center justify-center">
