@@ -1,7 +1,9 @@
+import { useRouter } from 'expo-router';
 import { Dimensions, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function FavoritesScreen() {
+  const router = useRouter();
   const SCREEN_WIDTH = Dimensions.get('window').width;
   const ITEM_MARGIN = 12;
   const ITEM_WIDTH = SCREEN_WIDTH - 32;
@@ -71,8 +73,12 @@ export default function FavoritesScreen() {
           ItemSeparatorComponent={() => <View style={{ height: ITEM_MARGIN }} />}
           contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={({ item }) => (
-            <View
+            <TouchableOpacity
               className="bg-white rounded-xl shadow-md p-3"
+              onPress={() => router.push({
+                pathname: "/details",
+                params: { id: "123" }
+              })}
               style={{ width: ITEM_WIDTH, alignSelf: 'center' }}
             >
               <View className="flex-row justify-between">
@@ -126,7 +132,7 @@ export default function FavoritesScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
         />
       </View>
