@@ -223,15 +223,14 @@ export default function ExploreScreen() {
           {showFiltros && (
             <View className="flex-row flex-wrap mt-2">
               {selectedKeywords.map((keyword) => (
-                <View
+                <TouchableOpacity
                   key={keyword}
+                  onPress={() => toggleKeyword(keyword)}
                   className="flex-row items-center px-3 py-1 mr-4 mb-4 bg-primary/10"
                 >
                   <Text className="text-primary mr-2">{keyword}</Text>
-                  <TouchableOpacity onPress={() => toggleKeyword(keyword)}>
-                    <Icon as={X} size={16} strokeWidth={2.5} className="text-primary" />
-                  </TouchableOpacity>
-                </View>
+                  <Icon as={X} size={16} strokeWidth={2.5} className="text-primary" />
+                </TouchableOpacity>
               ))}
             </View>
           )}
