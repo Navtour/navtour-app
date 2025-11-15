@@ -702,7 +702,7 @@ export default function ItineraryDetailScreen() {
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
-                className="mb-4 -mx-6 px-6"
+                className="mb-4"
                 contentContainerStyle={{ gap: 12 }}
               >
                 {itinerary.days.map((dayData) => (
