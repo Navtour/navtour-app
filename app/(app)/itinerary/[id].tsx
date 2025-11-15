@@ -537,14 +537,14 @@ export default function ItineraryDetailScreen() {
             <Text className="text-small text-primary/70 mb-3 leading-5">
               Roteiro completo com praias, cultura e gastronomia local
             </Text>
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center justify-between">
               <View className="bg-primary/10 px-3 py-1.5 rounded-full flex-row items-center">
                 <Ionicons name="calendar-outline" size={14} color="#1238b4" />
                 <Text className="text-tiny text-primary font-semibold ml-1.5">
                   {itinerary.startDate}
                 </Text>
               </View>
-              <Ionicons name="arrow-forward" size={14} color="#1238b460" />
+              <Ionicons name="arrow-forward" size={14} color="#1238b486" />
               <View className="bg-primary/10 px-3 py-1.5 rounded-full flex-row items-center">
                 <Ionicons name="calendar-outline" size={14} color="#1238b4" />
                 <Text className="text-tiny text-primary font-semibold ml-1.5">
