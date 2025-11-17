@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useItineraryForm } from '@/app/(app)/itinerary/create/FormContext';
 
 type Accommodation = {
   id: string;
@@ -21,29 +22,52 @@ type Accommodation = {
   checkOutTime: Date;
 };
 
-type FormData = {
-  state: string;
-  city: string;
-  arrivalDate: Date;
-  departureDate: Date;
-  accommodations: Accommodation[];
-};
-
 export default function CreateItineraryStep1() {
   const router = useRouter();
+  const { formData, updateStep1 } = useItineraryForm();
   const [showArrivalPicker, setShowArrivalPicker] = useState(false);
   const [showDeparturePicker, setShowDeparturePicker] = useState(false);
-  
   const [activeAccommodationId, setActiveAccommodationId] = useState<string | null>(null);
   const [activePickerType, setActivePickerType] = useState<'checkInDate' | 'checkInTime' | 'checkOutDate' | 'checkOutTime' | null>(null);
+  const [state, setState] = useState('');
+  const [city, setCity] = useState('');
+  const [arrivalDate, setArrivalDate] = useState(new Date());
+  const [departureDate, setDepartureDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
 
-  const [formData, setFormData] = useState<FormData>({
-    state: '',
-    city: '',
-    arrivalDate: new Date(),
-    departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    accommodations: [],
-  });
+  useEffect(() => {
+    if (formData.step1) {
+      const { step1 } = formData;
+      
+      setState(step1.state);
+      setCity(step1.city);
+      setArrivalDate(new Date(step1.arrivalDate + 'T00:00:00'));
+      setDepartureDate(new Date(step1.departureDate + 'T00:00:00'));
+      
+      setAccommodations(step1.accommodations.map(acc => {
+        const parseTime = (timeStr?: string) => {
+          if (!timeStr) return new Date(new Date().setHours(14, 0, 0, 0));
+          const [h, m] = timeStr.split(':');
+          const date = new Date();
+          date.setHours(parseInt(h), parseInt(m), 0, 0);
+          return date;
+        };
+
+        return {
+          id: acc.id,
+          isRelativeHouse: acc.isRelativeHouse,
+          name: acc.name || '',
+          address: acc.address,
+          instagram: acc.instagram || '',
+          facebook: acc.facebook || '',
+          checkInDate: new Date(acc.checkInDate + 'T00:00:00'),
+          checkInTime: parseTime(acc.checkInTime),
+          checkOutDate: new Date(acc.checkOutDate + 'T00:00:00'),
+          checkOutTime: parseTime(acc.checkOutTime),
+        };
+      }));
+    }
+  }, []);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -66,36 +90,27 @@ export default function CreateItineraryStep1() {
       checkOutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       checkOutTime: new Date(new Date().setHours(12, 0, 0, 0)),
     };
-    setFormData(prev => ({
-      ...prev,
-      accommodations: [...prev.accommodations, newAccommodation]
-    }));
+    setAccommodations([...accommodations, newAccommodation]);
   };
 
   const removeAccommodation = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      accommodations: prev.accommodations.filter(acc => acc.id !== id)
-    }));
+    setAccommodations(accommodations.filter(acc => acc.id !== id));
   };
 
   const updateAccommodation = (id: string, field: keyof Accommodation, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      accommodations: prev.accommodations.map(acc => {
-        if (acc.id === id) {
-          const updated = { ...acc, [field]: value };
-
-          if (field === 'isRelativeHouse' && value === true) {
-            updated.name = '';
-            updated.instagram = '';
-            updated.facebook = '';
-          }
-          
-          return updated;
+    setAccommodations(accommodations.map(acc => {
+      if (acc.id === id) {
+        const updated = { ...acc, [field]: value };
+        
+        if (field === 'isRelativeHouse' && value === true) {
+          updated.name = '';
+          updated.instagram = '';
+          updated.facebook = '';
         }
-        return acc;
-      })
+        
+        return updated;
+      }
+      return acc;
     }));
   };
 
@@ -110,19 +125,14 @@ export default function CreateItineraryStep1() {
   };
 
   const handleNext = () => {
-    if (!formData.state.trim() || !formData.city.trim() || formData.arrivalDate >= formData.departureDate) {
+    if (!state.trim() || !city.trim() || arrivalDate >= departureDate) {
       return;
     }
-
-    const formatDateOnly = (date: Date) => {
-      return date.toISOString().split('T')[0];
-    };
-
-    const formatTimeOnly = (date: Date) => {
-      return date.toTimeString().split(' ')[0].substring(0, 5);
-    };
-
-    const cleanedAccommodations = formData.accommodations.map(acc => {
+    
+    const formatDateOnly = (date: Date) => date.toISOString().split('T')[0];
+    const formatTimeOnly = (date: Date) => date.toTimeString().split(' ')[0].substring(0, 5);
+    
+    const cleanedAccommodations = accommodations.map(acc => {
       if (acc.isRelativeHouse) {
         return {
           id: acc.id,
@@ -147,18 +157,15 @@ export default function CreateItineraryStep1() {
       };
     });
     
-    router.push({
-      pathname: '/itinerary/create/step-2',
-      params: {
-        step1Data: JSON.stringify({
-          state: formData.state,
-          city: formData.city,
-          arrivalDate: formatDateOnly(formData.arrivalDate),
-          departureDate: formatDateOnly(formData.departureDate),
-          accommodations: cleanedAccommodations
-        })
-      }
+    updateStep1({
+      state,
+      city,
+      arrivalDate: formatDateOnly(arrivalDate),
+      departureDate: formatDateOnly(departureDate),
+      accommodations: cleanedAccommodations,
     });
+    
+    router.push('/itinerary/create/step-2');
   };
 
   return (
@@ -177,8 +184,8 @@ export default function CreateItineraryStep1() {
             <View className="gap-2">
               <Text className="text-primary/70 text-xs">Estado</Text>
               <Input
-                value={formData.state}
-                onChangeText={(val) => setFormData({ ...formData, state: val })}
+                value={state}
+                onChangeText={setState}
                 placeholder="Ex: Ceará"
                 className="bg-white border-2 border-primary"
               />
@@ -187,8 +194,8 @@ export default function CreateItineraryStep1() {
             <View className="gap-2">
               <Text className="text-primary/70 text-xs">Cidade</Text>
               <Input
-                value={formData.city}
-                onChangeText={(val) => setFormData({ ...formData, city: val })}
+                value={city}
+                onChangeText={setCity}
                 placeholder="Ex: Fortaleza"
                 className="bg-white border-2 border-primary"
               />
@@ -206,7 +213,7 @@ export default function CreateItineraryStep1() {
                   onPress={() => setShowArrivalPicker(true)}
                   className="bg-white border-2 border-primary rounded-md px-3 py-2.5 flex-row items-center justify-between"
                 >
-                  <Text className="text-primary">{formatDate(formData.arrivalDate)}</Text>
+                  <Text className="text-primary">{formatDate(arrivalDate)}</Text>
                   <Ionicons name="calendar-outline" size={20} color="#1238b4" />
                 </TouchableOpacity>
               </View>
@@ -217,7 +224,7 @@ export default function CreateItineraryStep1() {
                   onPress={() => setShowDeparturePicker(true)}
                   className="bg-white border-2 border-primary rounded-md px-3 py-2.5 flex-row items-center justify-between"
                 >
-                  <Text className="text-primary">{formatDate(formData.departureDate)}</Text>
+                  <Text className="text-primary">{formatDate(departureDate)}</Text>
                   <Ionicons name="calendar-outline" size={20} color="#1238b4" />
                 </TouchableOpacity>
               </View>
@@ -237,7 +244,7 @@ export default function CreateItineraryStep1() {
               </TouchableOpacity>
             </View>
 
-            {formData.accommodations.length === 0 && (
+            {accommodations.length === 0 && (
               <View className="bg-primary/5 border-2 border-dashed border-primary/20 rounded-xl p-6 items-center">
                 <Ionicons name="bed-outline" size={48} color="#1238b4" opacity={0.3} />
                 <Text className="text-primary/50 text-sm mt-2 text-center">
@@ -249,7 +256,7 @@ export default function CreateItineraryStep1() {
               </View>
             )}
 
-            {formData.accommodations.map((accommodation, index) => (
+            {accommodations.map((accommodation, index) => (
               <View key={accommodation.id} className="bg-white rounded-xl p-4 gap-4 border-2 border-primary/10">
                 <View className="flex-row items-center justify-between pb-3 border-b border-primary/10">
                   <View className="flex-row items-center gap-3">
@@ -389,7 +396,7 @@ export default function CreateItineraryStep1() {
           {/* Date Pickers */}
           {showArrivalPicker && (
             <DateTimePicker
-              value={formData.arrivalDate}
+              value={arrivalDate}
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event: DateTimePickerEvent, date?: Date) => {
@@ -397,7 +404,7 @@ export default function CreateItineraryStep1() {
                   setShowArrivalPicker(false);
                 }
                 if (event.type === 'set' && date) {
-                  setFormData({ ...formData, arrivalDate: date });
+                  setArrivalDate(date);
                   if (Platform.OS === 'ios') {
                     setShowArrivalPicker(false);
                   }
@@ -409,7 +416,7 @@ export default function CreateItineraryStep1() {
           )}
           {showDeparturePicker && (
             <DateTimePicker
-              value={formData.departureDate}
+              value={departureDate}
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event: DateTimePickerEvent, date?: Date) => {
@@ -417,7 +424,7 @@ export default function CreateItineraryStep1() {
                   setShowDeparturePicker(false);
                 }
                 if (event.type === 'set' && date) {
-                  setFormData({ ...formData, departureDate: date });
+                  setDepartureDate(date);
                   if (Platform.OS === 'ios') {
                     setShowDeparturePicker(false);
                   }
@@ -430,7 +437,7 @@ export default function CreateItineraryStep1() {
           
           {/* Accommodation Pickers */}
           {activeAccommodationId && activePickerType && (() => {
-            const accommodation = formData.accommodations.find(acc => acc.id === activeAccommodationId);
+            const accommodation = accommodations.find(acc => acc.id === activeAccommodationId);
             if (!accommodation) return null;
 
             const pickerConfig = {
@@ -485,7 +492,7 @@ export default function CreateItineraryStep1() {
       <View className="px-6 pb-6 pt-3 bg-secondary border-t border-primary/10">
         <Button
           onPress={handleNext}
-          disabled={!formData.state.trim() || !formData.city.trim() || formData.arrivalDate >= formData.departureDate}
+          disabled={!state.trim() || !city.trim() || arrivalDate >= departureDate}
           className="bg-primary h-12"
         >
           <Text className="text-secondary font-semibold text-base">Continuar</Text>

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/Button';
+import { useItineraryForm } from '@/app/(app)/itinerary/create/FormContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -88,9 +89,17 @@ const ITINERARY_TEMPLATES: ItineraryTemplate[] = [
 
 export default function CreateItineraryStep2() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const { formData, updateStep2 } = useItineraryForm();
+  
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('custom');
+
+  useEffect(() => {
+    if (formData.step2) {
+      setSelectedMoods(formData.step2.moods);
+      setSelectedTemplate(formData.step2.template);
+    }
+  }, []);
 
   const toggleMood = (moodId: string) => {
     setSelectedMoods(prev =>
@@ -103,16 +112,12 @@ export default function CreateItineraryStep2() {
   const handleNext = () => {
     if (selectedMoods.length === 0) return;
 
-    router.push({
-      pathname: '/itinerary/create/step-3',
-      params: {
-        step1Data: params.step1Data,
-        step2Data: JSON.stringify({
-          moods: selectedMoods,
-          template: selectedTemplate,
-        })
-      }
+    updateStep2({
+      moods: selectedMoods,
+      template: selectedTemplate,
     });
+    
+    router.push('/itinerary/create/step-3');
   };
 
   return (

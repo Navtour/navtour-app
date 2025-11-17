@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useItineraryForm } from '@/app/(app)/itinerary/create/FormContext';
 
 type StyleData = {
   name: string;
@@ -24,7 +25,7 @@ const DEFAULT_BACKGROUNDS = [
 
 export default function CreateItineraryStep3() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const { formData, updateStep3, getCompleteData, clearForm } = useItineraryForm();
   
   const [styleData, setStyleData] = useState<StyleData>({
     name: '',
@@ -48,19 +49,30 @@ export default function CreateItineraryStep3() {
   const handleFinish = async () => {
     if (!styleData.name.trim()) return;
 
-    const step1Data = params.step1Data ? JSON.parse(params.step1Data as string) : {};
-    const step2Data = params.step2Data ? JSON.parse(params.step2Data as string) : {};
+    updateStep3({
+      name: styleData.name,
+      description: styleData.description,
+      backgroundImage: styleData.backgroundImage,
+    });
 
-    const completeData = {
-      ...step1Data,
-      ...step2Data,
-      style: styleData,
+    const completeData = getCompleteData();
+    console.log('Itinerary Data:', {
+      ...completeData,
+      step3: {
+        name: styleData.name,
+        description: styleData.description,
+        backgroundImage: styleData.backgroundImage,
+      },
       createdAt: new Date().toISOString(),
-    };
-
-    console.log('Itinerary Data:', completeData);
+    });
     
+    clearForm();
     router.replace('/itinerary');
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('pt-BR');
   };
 
   return (
@@ -183,106 +195,113 @@ export default function CreateItineraryStep3() {
               <Text className="text-primary font-bold">Resumo do Roteiro</Text>
             </View>
             
-            {params.step1Data && (() => {
-              const data = JSON.parse(params.step1Data as string);
-              const formatDate = (dateStr: string) => {
-                const date = new Date(dateStr + 'T00:00:00');
-                return date.toLocaleDateString('pt-BR');
-              };
-              
-              return (
-                <View className="gap-3">
-                  <View className="gap-2">
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons name="location" size={16} color="#1238b4" />
-                      <Text className="text-primary/70 text-sm">
-                        {data.city}, {data.state}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons name="calendar" size={16} color="#1238b4" />
-                      <Text className="text-primary/70 text-sm">
-                        {formatDate(data.arrivalDate)} - {formatDate(data.departureDate)}
-                      </Text>
-                    </View>
+            {formData.step1 && (
+              <View className="gap-3">
+                <View className="gap-2">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="location" size={16} color="#1238b4" />
+                    <Text className="text-primary/70 text-sm">
+                      {formData.step1.city}, {formData.step1.state}
+                    </Text>
                   </View>
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="calendar" size={16} color="#1238b4" />
+                    <Text className="text-primary/70 text-sm">
+                      {formatDate(formData.step1.arrivalDate)} - {formatDate(formData.step1.departureDate)}
+                    </Text>
+                  </View>
+                </View>
 
-                  {data.accommodations && data.accommodations.length > 0 && (
-                    <View className="pt-2 border-t border-primary/10 gap-2">
-                      <View className="flex-row items-center gap-2">
-                        <Ionicons name="bed" size={16} color="#1238b4" />
-                        <Text className="text-primary font-semibold text-sm">
-                          {data.accommodations.length} {data.accommodations.length === 1 ? 'Hospedagem' : 'Hospedagens'}
-                        </Text>
-                      </View>
-                      {data.accommodations.map((acc: any, idx: number) => (
-                        <View key={acc.id} className="ml-6 pl-3 border-l-2 border-primary/20 gap-1">
-                          <View className="flex-row items-center gap-2">
-                            {acc.isRelativeHouse && (
-                              <View className="bg-primary/10 px-2 py-0.5 rounded-full">
-                                <Text className="text-primary text-xs">🏠 Casa</Text>
-                              </View>
-                            )}
-                            <Text className="text-primary text-sm font-medium">
-                              {acc.name || (acc.isRelativeHouse ? `Casa ${idx + 1}` : `Hospedagem ${idx + 1}`)}
+                {formData.step1.accommodations && formData.step1.accommodations.length > 0 && (
+                  <View className="pt-2 border-t border-primary/10 gap-2">
+                    <View className="flex-row items-center gap-2">
+                      <Ionicons name="bed" size={16} color="#1238b4" />
+                      <Text className="text-primary font-semibold text-sm">
+                        {formData.step1.accommodations.length} {formData.step1.accommodations.length === 1 ? 'Hospedagem' : 'Hospedagens'}
+                      </Text>
+                    </View>
+                    {formData.step1.accommodations.map((acc: any, idx: number) => (
+                      <View key={acc.id} className="ml-6 pl-3 border-l-2 border-primary/20 gap-1">
+                        <View className="flex-row items-center gap-2">
+                          {acc.isRelativeHouse && (
+                            <View className="bg-primary/10 px-2 py-0.5 rounded-full">
+                              <Text className="text-primary text-xs">🏠 Casa</Text>
+                            </View>
+                          )}
+                          <Text className="text-primary text-sm font-medium">
+                            {acc.name || (acc.isRelativeHouse ? `Casa ${idx + 1}` : `Hospedagem ${idx + 1}`)}
+                          </Text>
+                        </View>
+                        
+                        {acc.address && (
+                          <Text className="text-primary/60 text-xs">{acc.address}</Text>
+                        )}
+                        
+                        <View className="flex-row items-center gap-3 mt-1 flex-wrap">
+                          <View className="flex-row items-center gap-1">
+                            <Ionicons name="log-in-outline" size={12} color="#68c7d1" />
+                            <Text className="text-primary/60 text-xs">
+                              {formatDate(acc.checkInDate)}
+                              {acc.checkInTime && ` às ${acc.checkInTime}`}
                             </Text>
                           </View>
-                          
-                          {acc.address && (
-                            <Text className="text-primary/60 text-xs">{acc.address}</Text>
-                          )}
-                          
-                          <View className="flex-row items-center gap-3 mt-1 flex-wrap">
-                            <View className="flex-row items-center gap-1">
-                              <Ionicons name="log-in-outline" size={12} color="#68c7d1" />
-                              <Text className="text-primary/60 text-xs">
-                                {formatDate(acc.checkInDate)}
-                                {acc.checkInTime && ` às ${acc.checkInTime}`}
-                              </Text>
-                            </View>
-                            <View className="flex-row items-center gap-1">
-                              <Ionicons name="log-out-outline" size={12} color="#ff6a32" />
-                              <Text className="text-primary/60 text-xs">
-                                {formatDate(acc.checkOutDate)}
-                                {acc.checkOutTime && ` às ${acc.checkOutTime}`}
-                              </Text>
-                            </View>
+                          <View className="flex-row items-center gap-1">
+                            <Ionicons name="log-out-outline" size={12} color="#ff6a32" />
+                            <Text className="text-primary/60 text-xs">
+                              {formatDate(acc.checkOutDate)}
+                              {acc.checkOutTime && ` às ${acc.checkOutTime}`}
+                            </Text>
                           </View>
                         </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              );
-            })()}
-            
-            {params.step2Data && (() => {
-              const data = JSON.parse(params.step2Data as string);
-              const moodNames: { [key: string]: string } = {
-                relaxing: 'Relaxante 🏖️',
-                adventure: 'Aventura 🏔️',
-                cultural: 'Cultural 🏛️',
-                gastronomic: 'Gastronômico 🍽️',
-                romantic: 'Romântico 💑',
-                family: 'Família 👨‍👩‍👧‍👦',
-              };
-              
-              return (
-                <View className="gap-2 pt-2 border-t border-primary/10">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name="heart" size={16} color="#ff6a32" />
-                    <Text className="text-primary font-semibold text-sm">Estilos selecionados</Text>
-                  </View>
-                  <View className="flex-row flex-wrap gap-2 ml-6">
-                    {data.moods?.map((moodId: string) => (
-                      <View key={moodId} className="bg-primary/10 px-3 py-1 rounded-full">
-                        <Text className="text-primary text-xs">{moodNames[moodId] || moodId}</Text>
+                        
+                        {(acc.instagram || acc.facebook) && (
+                          <View className="flex-row items-center gap-2 mt-1">
+                            {acc.instagram && (
+                              <View className="flex-row items-center gap-1">
+                                <Ionicons name="logo-instagram" size={10} color="#E4405F" />
+                                <Text className="text-primary/60 text-xs">{acc.instagram}</Text>
+                              </View>
+                            )}
+                            {acc.facebook && (
+                              <View className="flex-row items-center gap-1">
+                                <Ionicons name="logo-facebook" size={10} color="#1877F2" />
+                                <Text className="text-primary/60 text-xs">{acc.facebook}</Text>
+                              </View>
+                            )}
+                          </View>
+                        )}
                       </View>
                     ))}
                   </View>
+                )}
+              </View>
+            )}
+            
+            {formData.step2 && (
+              <View className="gap-2 pt-2 border-t border-primary/10">
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="heart" size={16} color="#ff6a32" />
+                  <Text className="text-primary font-semibold text-sm">Estilos selecionados</Text>
                 </View>
-              );
-            })()}
+                <View className="flex-row flex-wrap gap-2 ml-6">
+                  {formData.step2.moods?.map((moodId: string) => {
+                    const moodNames: { [key: string]: string } = {
+                      relaxing: 'Relaxante 🏖️',
+                      adventure: 'Aventura 🏔️',
+                      cultural: 'Cultural 🏛️',
+                      gastronomic: 'Gastronômico 🍽️',
+                      romantic: 'Romântico 💑',
+                      family: 'Família 👨‍👩‍👧‍👦',
+                    };
+                    return (
+                      <View key={moodId} className="bg-primary/10 px-3 py-1 rounded-full">
+                        <Text className="text-primary text-xs">{moodNames[moodId] || moodId}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>

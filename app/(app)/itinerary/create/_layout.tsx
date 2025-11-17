@@ -5,8 +5,9 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { Text } from '@/components/ui/text';
+import { ItineraryFormProvider } from '@/app/(app)/itinerary/create/FormContext';
 
-export default function CreateItineraryLayout() {
+function CreateItineraryLayoutContent() {
   const router = useRouter();
   const segments = useSegments();
   const [isLoading, setIsLoading] = useState(true);
@@ -197,5 +198,13 @@ export default function CreateItineraryLayout() {
         )}
       </View>
     </SafeAreaView>
+  );
+}
+
+export default function CreateItineraryLayout() {
+  return (
+    <ItineraryFormProvider>
+      <CreateItineraryLayoutContent />
+    </ItineraryFormProvider>
   );
 }
