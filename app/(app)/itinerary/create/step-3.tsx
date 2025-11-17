@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -32,6 +32,26 @@ export default function CreateItineraryStep3() {
     description: '',
     backgroundImage: DEFAULT_BACKGROUNDS[0].uri,
   });
+
+  useEffect(() => {
+    if (formData.step3) {
+      setStyleData({
+        name: formData.step3.name,
+        description: formData.step3.description,
+        backgroundImage: formData.step3.backgroundImage,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (styleData.name || styleData.description) {
+      updateStep3({
+        name: styleData.name,
+        description: styleData.description,
+        backgroundImage: styleData.backgroundImage,
+      });
+    }
+  }, [styleData]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
