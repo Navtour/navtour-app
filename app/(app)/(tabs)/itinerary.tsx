@@ -285,6 +285,7 @@ export default function ItinerariesScreen() {
       {/* Floating Action Button */}
       <View className="absolute bottom-6 right-6">
         <TouchableOpacity 
+          onPress={() => router.push('/itinerary/create' as any)}
           className="w-14 h-14 rounded-full bg-primary items-center justify-center shadow-card-hover"
           style={{
             shadowColor: '#1238b4',
