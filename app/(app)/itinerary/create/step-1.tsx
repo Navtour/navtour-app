@@ -82,9 +82,20 @@ export default function CreateItineraryStep1() {
   const updateAccommodation = (id: string, field: keyof Accommodation, value: any) => {
     setFormData(prev => ({
       ...prev,
-      accommodations: prev.accommodations.map(acc =>
-        acc.id === id ? { ...acc, [field]: value } : acc
-      )
+      accommodations: prev.accommodations.map(acc => {
+        if (acc.id === id) {
+          const updated = { ...acc, [field]: value };
+
+          if (field === 'isRelativeHouse' && value === true) {
+            updated.name = '';
+            updated.instagram = '';
+            updated.facebook = '';
+          }
+          
+          return updated;
+        }
+        return acc;
+      })
     }));
   };
 
@@ -102,11 +113,50 @@ export default function CreateItineraryStep1() {
     if (!formData.state.trim() || !formData.city.trim() || formData.arrivalDate >= formData.departureDate) {
       return;
     }
+
+    const formatDateOnly = (date: Date) => {
+      return date.toISOString().split('T')[0];
+    };
+
+    const formatTimeOnly = (date: Date) => {
+      return date.toTimeString().split(' ')[0].substring(0, 5);
+    };
+
+    const cleanedAccommodations = formData.accommodations.map(acc => {
+      if (acc.isRelativeHouse) {
+        return {
+          id: acc.id,
+          isRelativeHouse: true,
+          address: acc.address,
+          checkInDate: formatDateOnly(acc.checkInDate),
+          checkOutDate: formatDateOnly(acc.checkOutDate),
+        };
+      }
+      
+      return {
+        id: acc.id,
+        isRelativeHouse: false,
+        name: acc.name,
+        address: acc.address,
+        instagram: acc.instagram,
+        facebook: acc.facebook,
+        checkInDate: formatDateOnly(acc.checkInDate),
+        checkInTime: formatTimeOnly(acc.checkInTime),
+        checkOutDate: formatDateOnly(acc.checkOutDate),
+        checkOutTime: formatTimeOnly(acc.checkOutTime),
+      };
+    });
     
     router.push({
       pathname: '/itinerary/create/step-2',
       params: {
-        step1Data: JSON.stringify(formData)
+        step1Data: JSON.stringify({
+          state: formData.state,
+          city: formData.city,
+          arrivalDate: formatDateOnly(formData.arrivalDate),
+          departureDate: formatDateOnly(formData.departureDate),
+          accommodations: cleanedAccommodations
+        })
       }
     });
   };
@@ -207,7 +257,7 @@ export default function CreateItineraryStep1() {
                       <Text className="text-secondary font-bold text-sm">{index + 1}</Text>
                     </View>
                     <Text className="text-primary font-bold text-base">
-                      {accommodation.name || `Hospedagem ${index + 1}`}
+                      {accommodation.name || (accommodation.isRelativeHouse ? `Casa ${index + 1}` : `Hospedagem ${index + 1}`)}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -218,50 +268,73 @@ export default function CreateItineraryStep1() {
                   </TouchableOpacity>
                 </View>
 
-                <View className="gap-2">
-                  <Text className="text-primary font-bold text-sm">Nome do local</Text>
-                  <Input
-                    value={accommodation.name}
-                    onChangeText={(val) => updateAccommodation(accommodation.id, 'name', val)}
-                    placeholder="Ex: Hotel Praia Mar"
-                    className="bg-secondary border-2 border-primary"
+                {/* Checkbox */}
+                <TouchableOpacity
+                  onPress={() => updateAccommodation(accommodation.id, 'isRelativeHouse', !accommodation.isRelativeHouse)}
+                  className="flex-row items-center gap-3 py-2 px-3 bg-primary/5 rounded-lg"
+                >
+                  <Checkbox
+                    checked={accommodation.isRelativeHouse}
+                    onCheckedChange={(checked) => updateAccommodation(accommodation.id, 'isRelativeHouse', checked)}
                   />
-                </View>
+                  <View className="flex-1">
+                    <Text className="text-primary font-semibold">Casa de parente/amigo</Text>
+                    <Text className="text-primary/60 text-xs">Hospedagem informal sem horários fixos</Text>
+                  </View>
+                </TouchableOpacity>
 
+                {/* Nome */}
+                {!accommodation.isRelativeHouse && (
+                  <View className="gap-2">
+                    <Text className="text-primary font-bold text-sm">Nome do local</Text>
+                    <Input
+                      value={accommodation.name}
+                      onChangeText={(val) => updateAccommodation(accommodation.id, 'name', val)}
+                      placeholder="Ex: Hotel Praia Mar"
+                      className="bg-secondary border-2 border-primary"
+                    />
+                  </View>
+                )}
+
+                {/* Endereço */}
                 <View className="gap-2">
                   <Text className="text-primary font-bold text-sm">Endereço</Text>
                   <Input
                     value={accommodation.address}
                     onChangeText={(val) => updateAccommodation(accommodation.id, 'address', val)}
-                    placeholder="Rua, número, bairro"
+                    placeholder={accommodation.isRelativeHouse ? "Ex: Rua das Flores, 123" : "Rua, número"}
                     className="bg-secondary border-2 border-primary"
                   />
                 </View>
 
-                <View className="gap-2">
-                  <Text className="text-primary font-bold text-sm">Redes sociais (opcional)</Text>
-                  <View className="gap-3">
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons name="logo-instagram" size={20} color="#E4405F" />
-                      <Input
-                        value={accommodation.instagram}
-                        onChangeText={(val) => updateAccommodation(accommodation.id, 'instagram', val)}
-                        placeholder="@usuario"
-                        className="flex-1 bg-secondary border-2 border-primary"
-                      />
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-                      <Input
-                        value={accommodation.facebook}
-                        onChangeText={(val) => updateAccommodation(accommodation.id, 'facebook', val)}
-                        placeholder="@usuario"
-                        className="flex-1 bg-secondary border-2 border-primary"
-                      />
+                {/* Redes sociais */}
+                {!accommodation.isRelativeHouse && (
+                  <View className="gap-2">
+                    <Text className="text-primary font-bold text-sm">Redes sociais (opcional)</Text>
+                    <View className="gap-3">
+                      <View className="flex-row items-center gap-2">
+                        <Ionicons name="logo-instagram" size={20} color="#E4405F" />
+                        <Input
+                          value={accommodation.instagram}
+                          onChangeText={(val) => updateAccommodation(accommodation.id, 'instagram', val)}
+                          placeholder="@usuario"
+                          className="flex-1 bg-secondary border-2 border-primary"
+                        />
+                      </View>
+                      <View className="flex-row items-center gap-2">
+                        <Ionicons name="logo-facebook" size={20} color="#1877F2" />
+                        <Input
+                          value={accommodation.facebook}
+                          onChangeText={(val) => updateAccommodation(accommodation.id, 'facebook', val)}
+                          placeholder="@usuario"
+                          className="flex-1 bg-secondary border-2 border-primary"
+                        />
+                      </View>
                     </View>
                   </View>
-                </View>
+                )}
 
+                {/* Check-in e Check-out */}
                 <View className="flex-row gap-3">
                   <View className="flex-1 gap-2">
                     <Text className="text-primary font-bold text-sm">Check-in</Text>
@@ -273,13 +346,16 @@ export default function CreateItineraryStep1() {
                         <Text className="text-primary text-sm">{formatDate(accommodation.checkInDate)}</Text>
                         <Ionicons name="calendar-outline" size={18} color="#1238b4" />
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => openPicker(accommodation.id, 'checkInTime')}
-                        className="bg-secondary border-2 border-primary rounded-md px-3 py-2.5 flex-row items-center justify-between"
-                      >
-                        <Text className="text-primary text-sm">{formatTime(accommodation.checkInTime)}</Text>
-                        <Ionicons name="time-outline" size={18} color="#1238b4" />
-                      </TouchableOpacity>
+                      
+                      {!accommodation.isRelativeHouse && (
+                        <TouchableOpacity
+                          onPress={() => openPicker(accommodation.id, 'checkInTime')}
+                          className="bg-secondary border-2 border-primary rounded-md px-3 py-2.5 flex-row items-center justify-between"
+                        >
+                          <Text className="text-primary text-sm">{formatTime(accommodation.checkInTime)}</Text>
+                          <Ionicons name="time-outline" size={18} color="#1238b4" />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
 
@@ -293,27 +369,19 @@ export default function CreateItineraryStep1() {
                         <Text className="text-primary text-sm">{formatDate(accommodation.checkOutDate)}</Text>
                         <Ionicons name="calendar-outline" size={18} color="#1238b4" />
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => openPicker(accommodation.id, 'checkOutTime')}
-                        className="bg-secondary border-2 border-primary rounded-md px-3 py-2.5 flex-row items-center justify-between"
-                      >
-                        <Text className="text-primary text-sm">{formatTime(accommodation.checkOutTime)}</Text>
-                        <Ionicons name="time-outline" size={18} color="#1238b4" />
-                      </TouchableOpacity>
+                      
+                      {!accommodation.isRelativeHouse && (
+                        <TouchableOpacity
+                          onPress={() => openPicker(accommodation.id, 'checkOutTime')}
+                          className="bg-secondary border-2 border-primary rounded-md px-3 py-2.5 flex-row items-center justify-between"
+                        >
+                          <Text className="text-primary text-sm">{formatTime(accommodation.checkOutTime)}</Text>
+                          <Ionicons name="time-outline" size={18} color="#1238b4" />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 </View>
-
-                <TouchableOpacity
-                  onPress={() => updateAccommodation(accommodation.id, 'isRelativeHouse', !accommodation.isRelativeHouse)}
-                  className="flex-row items-center gap-3 pt-2"
-                >
-                  <Checkbox
-                    checked={accommodation.isRelativeHouse}
-                    onCheckedChange={(checked) => updateAccommodation(accommodation.id, 'isRelativeHouse', checked)}
-                  />
-                  <Text className="text-primary">Casa de parente/amigo</Text>
-                </TouchableOpacity>
               </View>
             ))}
           </View>

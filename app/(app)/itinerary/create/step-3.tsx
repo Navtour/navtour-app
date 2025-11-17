@@ -185,6 +185,11 @@ export default function CreateItineraryStep3() {
             
             {params.step1Data && (() => {
               const data = JSON.parse(params.step1Data as string);
+              const formatDate = (dateStr: string) => {
+                const date = new Date(dateStr + 'T00:00:00');
+                return date.toLocaleDateString('pt-BR');
+              };
+              
               return (
                 <View className="gap-3">
                   <View className="gap-2">
@@ -197,7 +202,7 @@ export default function CreateItineraryStep3() {
                     <View className="flex-row items-center gap-2">
                       <Ionicons name="calendar" size={16} color="#1238b4" />
                       <Text className="text-primary/70 text-sm">
-                        {new Date(data.arrivalDate).toLocaleDateString('pt-BR')} - {new Date(data.departureDate).toLocaleDateString('pt-BR')}
+                        {formatDate(data.arrivalDate)} - {formatDate(data.departureDate)}
                       </Text>
                     </View>
                   </View>
@@ -212,23 +217,34 @@ export default function CreateItineraryStep3() {
                       </View>
                       {data.accommodations.map((acc: any, idx: number) => (
                         <View key={acc.id} className="ml-6 pl-3 border-l-2 border-primary/20 gap-1">
-                          <Text className="text-primary text-sm font-medium">
-                            {acc.name || `Hospedagem ${idx + 1}`}
-                          </Text>
+                          <View className="flex-row items-center gap-2">
+                            {acc.isRelativeHouse && (
+                              <View className="bg-primary/10 px-2 py-0.5 rounded-full">
+                                <Text className="text-primary text-xs">🏠 Casa</Text>
+                              </View>
+                            )}
+                            <Text className="text-primary text-sm font-medium">
+                              {acc.name || (acc.isRelativeHouse ? `Casa ${idx + 1}` : `Hospedagem ${idx + 1}`)}
+                            </Text>
+                          </View>
+                          
                           {acc.address && (
                             <Text className="text-primary/60 text-xs">{acc.address}</Text>
                           )}
-                          <View className="flex-row items-center gap-3 mt-1">
+                          
+                          <View className="flex-row items-center gap-3 mt-1 flex-wrap">
                             <View className="flex-row items-center gap-1">
                               <Ionicons name="log-in-outline" size={12} color="#68c7d1" />
                               <Text className="text-primary/60 text-xs">
-                                {new Date(acc.checkInDate).toLocaleDateString('pt-BR')} às {new Date(acc.checkInTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                {formatDate(acc.checkInDate)}
+                                {acc.checkInTime && ` às ${acc.checkInTime}`}
                               </Text>
                             </View>
                             <View className="flex-row items-center gap-1">
                               <Ionicons name="log-out-outline" size={12} color="#ff6a32" />
                               <Text className="text-primary/60 text-xs">
-                                {new Date(acc.checkOutDate).toLocaleDateString('pt-BR')} às {new Date(acc.checkOutTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                {formatDate(acc.checkOutDate)}
+                                {acc.checkOutTime && ` às ${acc.checkOutTime}`}
                               </Text>
                             </View>
                           </View>
