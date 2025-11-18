@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, ScrollView, TouchableOpacity, Platform, Alert, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/text';
@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useItineraryForm } from '@/app/(app)/itinerary/create/FormContext';
+import { getStates, getCitiesByState, searchStates, searchCities,getStateByName,State, City } from '@/lib/locations';
 
+type PickerType = 'state' | 'city';
 type Accommodation = {
   id: string;
   isRelativeHouse: boolean;
@@ -31,9 +33,28 @@ export default function CreateItineraryStep1() {
   const [activePickerType, setActivePickerType] = useState<'checkInDate' | 'checkInTime' | 'checkOutDate' | 'checkOutTime' | null>(null);
   const [state, setState] = useState('');
   const [city, setCity] = useState('');
+  const [selectedStateId, setSelectedStateId] = useState<string | null>(null);
+  const [showLocationPicker, setShowLocationPicker] = useState<PickerType | null>(null);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [arrivalDate, setArrivalDate] = useState(new Date());
   const [departureDate, setDepartureDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const availableStates = useMemo(() => getStates(), []);
+  const availableCities = useMemo(() => {
+    if (!selectedStateId) return [];
+    return getCitiesByState(selectedStateId);
+  }, [selectedStateId]);
+
+  const filteredStates = useMemo(() => {
+    if (!locationSearch.trim()) return availableStates;
+    return searchStates(locationSearch);
+  }, [locationSearch, availableStates]);
+
+  const filteredCities = useMemo(() => {
+    if (!locationSearch.trim()) return availableCities;
+    return searchCities(locationSearch, selectedStateId || undefined);
+  }, [locationSearch, availableCities, selectedStateId]);
 
   useEffect(() => {
     if (formData.step1) {
@@ -41,6 +62,12 @@ export default function CreateItineraryStep1() {
       
       setState(step1.state);
       setCity(step1.city);
+      
+      const foundState = getStateByName(step1.state);
+      if (foundState) {
+        setSelectedStateId(foundState.id);
+      }
+      
       setArrivalDate(new Date(step1.arrivalDate + 'T00:00:00'));
       setDepartureDate(new Date(step1.departureDate + 'T00:00:00'));
       
@@ -77,7 +104,21 @@ export default function CreateItineraryStep1() {
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const getStartOfDay = (date: Date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
   const addAccommodation = () => {
+    const isFirstAccommodation = accommodations.length === 0;
+    const lastAccommodation = accommodations[accommodations.length - 1];
+    const checkInDate = isFirstAccommodation 
+      ? new Date(arrivalDate) 
+      : new Date(lastAccommodation.checkOutDate);
+    
+    const checkOutDate = new Date(departureDate);
+    
     const newAccommodation: Accommodation = {
       id: Date.now().toString(),
       isRelativeHouse: false,
@@ -85,33 +126,67 @@ export default function CreateItineraryStep1() {
       address: '',
       instagram: '',
       facebook: '',
-      checkInDate: new Date(),
+      checkInDate,
       checkInTime: new Date(new Date().setHours(14, 0, 0, 0)),
-      checkOutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      checkOutDate,
       checkOutTime: new Date(new Date().setHours(12, 0, 0, 0)),
     };
-    setAccommodations([...accommodations, newAccommodation]);
+
+    if (!isFirstAccommodation) {
+      setAccommodations(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          checkOutDate: checkInDate,
+        };
+        return [...updated, newAccommodation];
+      });
+    } else {
+      setAccommodations([...accommodations, newAccommodation]);
+    }
   };
 
   const removeAccommodation = (id: string) => {
-    setAccommodations(accommodations.filter(acc => acc.id !== id));
+    const index = accommodations.findIndex(acc => acc.id === id);
+    const newAccommodations = accommodations.filter(acc => acc.id !== id);
+    
+    if (newAccommodations.length > 0 && index > 0 && index < accommodations.length) {
+      const nextAcc = newAccommodations[index];
+      if (nextAcc && index > 0) {
+        newAccommodations[index - 1] = {
+          ...newAccommodations[index - 1],
+          checkOutDate: nextAcc.checkInDate,
+        };
+      }
+    }
+    
+    setAccommodations(newAccommodations);
   };
 
   const updateAccommodation = (id: string, field: keyof Accommodation, value: any) => {
-    setAccommodations(accommodations.map(acc => {
-      if (acc.id === id) {
-        const updated = { ...acc, [field]: value };
-        
-        if (field === 'isRelativeHouse' && value === true) {
-          updated.name = '';
-          updated.instagram = '';
-          updated.facebook = '';
+    setAccommodations(prev => {
+      const index = prev.findIndex(acc => acc.id === id);
+      
+      return prev.map((acc, i) => {
+        if (acc.id === id) {
+          const updated = { ...acc, [field]: value };
+          
+          if (field === 'isRelativeHouse' && value === true) {
+            updated.name = '';
+            updated.instagram = '';
+            updated.facebook = '';
+          }
+          
+          return updated;
+        }
+
+        if (field === 'checkOutDate' && i === index + 1) {
+          return { ...acc, checkInDate: value };
         }
         
-        return updated;
-      }
-      return acc;
-    }));
+        return acc;
+      });
+    });
   };
 
   const openPicker = (accommodationId: string, pickerType: 'checkInDate' | 'checkInTime' | 'checkOutDate' | 'checkOutTime') => {
@@ -124,8 +199,112 @@ export default function CreateItineraryStep1() {
     setActivePickerType(null);
   };
 
+  const handleStateSelect = (selectedState: State) => {
+    setState(selectedState.name);
+    setSelectedStateId(selectedState.id);
+    setCity('');
+    setShowLocationPicker(null);
+    setLocationSearch('');
+    setLocationError(null);
+  };
+
+  const handleCitySelect = (selectedCity: City) => {
+    setCity(selectedCity.name);
+    setShowLocationPicker(null);
+    setLocationSearch('');
+    setLocationError(null);
+  };
+
+  const validateLocation = (): boolean => {
+    if (!state.trim()) {
+      setLocationError('Selecione um estado');
+      return false;
+    }
+    
+    const foundState = getStateByName(state);
+    if (!foundState) {
+      setLocationError('Este estado não está disponível. Selecione um estado da lista.');
+      return false;
+    }
+    
+    if (!city.trim()) {
+      setLocationError('Selecione uma cidade');
+      return false;
+    }
+    
+    const citiesInState = getCitiesByState(foundState.id);
+    const cityExists = citiesInState.some(c => c.name.toLowerCase() === city.toLowerCase().trim());
+    
+    if (!cityExists) {
+      setLocationError(`${city} não está disponível em ${state}. Selecione uma cidade da lista.`);
+      return false;
+    }
+    
+    setLocationError(null);
+    return true;
+  };
+
+  const validateAccommodationDates = (): boolean => {
+    if (accommodations.length === 0) return true;
+    
+    const tripStart = getStartOfDay(arrivalDate);
+    const tripEnd = getStartOfDay(departureDate);
+
+    const firstAcc = accommodations[0];
+    const firstCheckIn = getStartOfDay(firstAcc.checkInDate);
+    if (firstCheckIn < tripStart) {
+      Alert.alert('Erro', 'O check-in da primeira hospedagem deve ser igual ou após a data de chegada da viagem.');
+      return false;
+    }
+
+    const lastAcc = accommodations[accommodations.length - 1];
+    const lastCheckOut = getStartOfDay(lastAcc.checkOutDate);
+    if (lastCheckOut > tripEnd) {
+      Alert.alert('Erro', 'O check-out da última hospedagem deve ser igual ou antes da data de saída da viagem.');
+      return false;
+    }
+
+    for (let i = 0; i < accommodations.length; i++) {
+      const acc = accommodations[i];
+      const checkIn = getStartOfDay(acc.checkInDate);
+      const checkOut = getStartOfDay(acc.checkOutDate);
+      
+      if (checkIn >= checkOut) {
+        Alert.alert('Erro', `Hospedagem ${i + 1}: Check-out deve ser após o check-in.`);
+        return false;
+      }
+
+      if (i > 0) {
+        const prevCheckOut = getStartOfDay(accommodations[i - 1].checkOutDate);
+        if (checkIn < prevCheckOut) {
+          Alert.alert('Erro', `Hospedagem ${i + 1}: Check-in deve ser igual ou após o check-out da hospedagem anterior.`);
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  };
+
   const handleNext = () => {
-    if (!state.trim() || !city.trim() || arrivalDate >= departureDate) {
+    const today = getStartOfDay(new Date());
+    const arrival = getStartOfDay(arrivalDate);
+    
+    if (arrival < today) {
+      Alert.alert('Erro', 'A data de chegada não pode ser anterior à data atual.');
+      return;
+    }
+
+    if (!validateLocation()) {
+      return;
+    }
+    
+    if (arrivalDate >= departureDate) {
+      Alert.alert('Erro', 'A data de saída deve ser posterior à data de chegada.');
+      return;
+    }
+
+    if (!validateAccommodationDates()) {
       return;
     }
     
@@ -168,6 +347,120 @@ export default function CreateItineraryStep1() {
     router.push('/itinerary/create/step-2');
   };
 
+  const renderLocationPicker = () => {
+    if (!showLocationPicker) return null;
+    
+    const isStatePicker = showLocationPicker === 'state';
+    
+    return (
+      <Modal
+        visible={true}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowLocationPicker(null);
+          setLocationSearch('');
+        }}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-3xl max-h-[70%]">
+            <View className="p-4 border-b border-primary/10">
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-primary font-bold text-lg">
+                  {isStatePicker ? 'Selecione o Estado' : 'Selecione a Cidade'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowLocationPicker(null);
+                    setLocationSearch('');
+                  }}
+                >
+                  <Ionicons name="close" size={24} color="#1238b4" />
+                </TouchableOpacity>
+              </View>
+              
+              <Input
+                value={locationSearch}
+                onChangeText={setLocationSearch}
+                placeholder={isStatePicker ? 'Buscar estado...' : 'Buscar cidade...'}
+                className="bg-secondary border-2 border-primary"
+              />
+            </View>
+            
+            {(isStatePicker ? filteredStates : filteredCities).length === 0 ? (
+              <View className="p-6 items-center">
+                <Ionicons name="alert-circle-outline" size={48} color="#1238b4" opacity={0.3} />
+                <Text className="text-primary/50 text-sm mt-2 text-center">
+                  {isStatePicker 
+                    ? 'Nenhum estado encontrado' 
+                    : selectedStateId 
+                      ? 'Nenhuma cidade disponível neste estado'
+                      : 'Selecione um estado primeiro'
+                  }
+                </Text>
+              </View>
+            ) : isStatePicker ? (
+              <FlatList<State>
+                data={filteredStates}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    onPress={() => handleStateSelect(item)}
+                    className="p-4 border-b border-primary/10 flex-row items-center justify-between"
+                  >
+                    <Text className="text-primary text-base">
+                      {item.name}
+                      <Text className="text-primary/50"> ({item.uf})</Text>
+                    </Text>
+                    <Ionicons name="chevron-forward" size={20} color="#1238b4" opacity={0.5} />
+                  </TouchableOpacity>
+                )}
+              />
+            ) : (
+              <FlatList<City>
+                data={filteredCities}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    onPress={() => handleCitySelect(item)}
+                    className="p-4 border-b border-primary/10 flex-row items-center justify-between"
+                  >
+                    <Text className="text-primary text-base">{item.name}</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#1238b4" opacity={0.5} />
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  const getAccommodationMinDate = (accId: string, field: 'checkInDate' | 'checkOutDate') => {
+    const index = accommodations.findIndex(acc => acc.id === accId);
+    const acc = accommodations[index];
+    
+    if (field === 'checkInDate') {
+      if (index === 0) return arrivalDate;
+      return accommodations[index - 1].checkOutDate;
+    }
+
+    return new Date(acc.checkInDate.getTime() + 24 * 60 * 60 * 1000);
+  };
+
+  const getAccommodationMaxDate = (accId: string, field: 'checkInDate' | 'checkOutDate') => {
+    const index = accommodations.findIndex(acc => acc.id === accId);
+    
+    if (field === 'checkOutDate') {
+      if (index === accommodations.length - 1) return departureDate;
+      return accommodations[index + 1].checkInDate;
+    }
+
+    const acc = accommodations[index];
+    return new Date(acc.checkOutDate.getTime() - 24 * 60 * 60 * 1000);
+  };
+
   return (
     <>
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
@@ -183,23 +476,45 @@ export default function CreateItineraryStep1() {
             
             <View className="gap-2">
               <Text className="text-primary/70 text-xs">Estado</Text>
-              <Input
-                value={state}
-                onChangeText={setState}
-                placeholder="Ex: Ceará"
-                className="bg-white border-2 border-primary"
-              />
+              <TouchableOpacity
+                onPress={() => setShowLocationPicker('state')}
+                className="bg-white border-2 border-primary rounded-md px-3 py-2.5 flex-row items-center justify-between"
+              >
+                <Text className={state ? 'text-primary' : 'text-primary/40'}>
+                  {state || 'Selecione o estado'}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#1238b4" />
+              </TouchableOpacity>
             </View>
 
             <View className="gap-2">
               <Text className="text-primary/70 text-xs">Cidade</Text>
-              <Input
-                value={city}
-                onChangeText={setCity}
-                placeholder="Ex: Fortaleza"
-                className="bg-white border-2 border-primary"
-              />
+              <TouchableOpacity
+                onPress={() => {
+                  if (!selectedStateId) {
+                    Alert.alert('Atenção', 'Selecione um estado primeiro.');
+                    return;
+                  }
+                  setShowLocationPicker('city');
+                }}
+                className={`bg-white border-2 rounded-md px-3 py-2.5 flex-row items-center justify-between ${
+                  selectedStateId ? 'border-primary' : 'border-primary/30'
+                }`}
+              >
+                <Text className={city ? 'text-primary' : 'text-primary/40'}>
+                  {city || (selectedStateId ? 'Selecione a cidade' : 'Selecione um estado primeiro')}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={selectedStateId ? '#1238b4' : '#1238b450'} />
+              </TouchableOpacity>
             </View>
+            
+            {/* Error Message */}
+            {locationError && (
+              <View className="bg-red-50 border border-red-200 rounded-lg p-3 flex-row items-start gap-2">
+                <Ionicons name="alert-circle" size={20} color="#dc2626" />
+                <Text className="text-red-600 text-sm flex-1">{locationError}</Text>
+              </View>
+            )}
           </View>
 
           {/* Travel Period */}
@@ -399,12 +714,16 @@ export default function CreateItineraryStep1() {
               value={arrivalDate}
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={new Date()}
               onChange={(event: DateTimePickerEvent, date?: Date) => {
                 if (Platform.OS === 'android') {
                   setShowArrivalPicker(false);
                 }
                 if (event.type === 'set' && date) {
                   setArrivalDate(date);
+                  if (date >= departureDate) {
+                    setDepartureDate(new Date(date.getTime() + 24 * 60 * 60 * 1000));
+                  }
                   if (Platform.OS === 'ios') {
                     setShowArrivalPicker(false);
                   }
@@ -419,6 +738,7 @@ export default function CreateItineraryStep1() {
               value={departureDate}
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={new Date(arrivalDate.getTime() + 24 * 60 * 60 * 1000)}
               onChange={(event: DateTimePickerEvent, date?: Date) => {
                 if (Platform.OS === 'android') {
                   setShowDeparturePicker(false);
@@ -448,12 +768,20 @@ export default function CreateItineraryStep1() {
             };
 
             const config = pickerConfig[activePickerType];
+            const minDate = activePickerType === 'checkInDate' || activePickerType === 'checkOutDate'
+              ? getAccommodationMinDate(activeAccommodationId, activePickerType as 'checkInDate' | 'checkOutDate')
+              : undefined;
+            const maxDate = activePickerType === 'checkInDate' || activePickerType === 'checkOutDate'
+              ? getAccommodationMaxDate(activeAccommodationId, activePickerType as 'checkInDate' | 'checkOutDate')
+              : undefined;
 
             return (
               <DateTimePicker
                 value={config.value}
                 mode={config.mode}
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={minDate}
+                maximumDate={maxDate}
                 onChange={(event: DateTimePickerEvent, date?: Date) => {
                   if (Platform.OS === 'android') {
                     closePicker();
@@ -492,12 +820,15 @@ export default function CreateItineraryStep1() {
       <View className="px-6 pb-6 pt-3 bg-secondary border-t border-primary/10">
         <Button
           onPress={handleNext}
-          disabled={!state.trim() || !city.trim() || arrivalDate >= departureDate}
+          disabled={!state.trim() || !city.trim()}
           className="bg-primary h-12"
         >
           <Text className="text-secondary font-semibold text-base">Continuar</Text>
         </Button>
       </View>
+      
+      {/* Location Picker Modal */}
+      {renderLocationPicker()}
     </>
   );
 }
