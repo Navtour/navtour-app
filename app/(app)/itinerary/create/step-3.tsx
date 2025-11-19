@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import useItineraryForm from '@/contexts/ItineraryContext';
+import * as ImagePicker from 'expo-image-picker';
 import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { useItineraryForm } from '@/app/(app)/itinerary/create/FormContext';
 
 type StyleData = {
   name: string;

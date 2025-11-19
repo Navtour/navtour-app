@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import useItineraryForm from '@/contexts/ItineraryContext';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { View, ScrollView, TouchableOpacity, Platform, Alert, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -6,8 +8,6 @@ import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useItineraryForm } from '@/app/(app)/itinerary/create/FormContext';
 import { getStates, getCitiesByState, searchStates, searchCities,getStateByName,State, City } from '@/lib/locations';
 
 type PickerType = 'state' | 'city';
