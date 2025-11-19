@@ -96,6 +96,35 @@ export default function CreateItineraryStep1() {
     }
   }, []);
 
+  // Sincroniza datas das hospedagens quando período da viagem muda
+  useEffect(() => {
+    if (accommodations.length === 0) return;
+
+    setAccommodations(prev => {
+      return prev.map((acc, index) => {
+        const updated = { ...acc };
+        
+        if (index === 0) {
+          const currentCheckIn = getStartOfDay(acc.checkInDate);
+          const newArrival = getStartOfDay(arrivalDate);
+          if (currentCheckIn.getTime() !== newArrival.getTime()) {
+            updated.checkInDate = new Date(arrivalDate);
+          }
+        }
+        
+        if (index === prev.length - 1) {
+          const currentCheckOut = getStartOfDay(acc.checkOutDate);
+          const newDeparture = getStartOfDay(departureDate);
+          if (currentCheckOut.getTime() !== newDeparture.getTime()) {
+            updated.checkOutDate = new Date(departureDate);
+          }
+        }
+        
+        return updated;
+      });
+    });
+  }, [arrivalDate, departureDate]);
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
