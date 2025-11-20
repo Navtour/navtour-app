@@ -1,4 +1,5 @@
-import '@/global.css'
+import { AuthProvider } from '@/contexts/AuthContext';
+import '@/global.css';
 import { Slot, SplashScreen } from 'expo-router';
 import { useEffect } from 'react';
 
@@ -9,5 +10,9 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, []);
 
-  return <Slot />;
+  return (
+    <AuthProvider>
+      <Slot />
+    </AuthProvider>
+  );
 }

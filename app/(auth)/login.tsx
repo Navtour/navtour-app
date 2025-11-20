@@ -1,31 +1,41 @@
-import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from '@/components/ui/Button';
+import { Divider } from '@/components/ui/Divider';
+import { Input } from '@/components/ui/Input';
+import { Logo } from '@/components/ui/Logo';
+import { Text } from '@/components/ui/text';
+import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Logo } from '@/components/ui/Logo';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Text } from '@/components/ui/text';
-import { Divider } from '@/components/ui/Divider';
+import React, { useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    router.replace('/onboarding');
-  }
+  const { signIn, loading } = useAuth();
+
+  const handleLogin = async () => {
+    setError(null);
+    try {
+      await signIn({ email, senha: password });
+      router.replace('/onboarding');
+    } catch (err: any) {
+      setError(err?.message || 'Erro ao efetuar login');
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-secondary">
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -71,7 +81,7 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => router.push('/forgot-password')}
                 className="self-end"
               >
@@ -80,11 +90,17 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
 
-              <Button className="bg-primary h-12 mt-2"
-                      onPress={handleLogin}
-              >
-                <Text className="text-secondary font-semibold">Login</Text>
+              <Button className="bg-primary h-12 mt-2" onPress={handleLogin} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-secondary font-semibold">Login</Text>
+                )}
               </Button>
+
+              {error ? (
+                <Text className="text-destructive text-sm mt-2">{error}</Text>
+              ) : null}
             </View>
 
             <Divider />
