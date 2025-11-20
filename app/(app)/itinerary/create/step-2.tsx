@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import useItineraryForm from '@/contexts/ItineraryContext';
 import { View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/Button';
-import { useItineraryForm } from '@/app/(app)/itinerary/create/FormContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 

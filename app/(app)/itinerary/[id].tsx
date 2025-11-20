@@ -5,6 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Text } from '@/components/ui/text';
 
+// @TODO: vincular o explorar para para a localização do roteiro
+// @TODO: Não limitar/extipular quantidade de locais ao dia
+
 type Activity = {
   id: number;
   name: string;

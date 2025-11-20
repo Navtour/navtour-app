@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ItineraryFormProvider } from '@/contexts/ItineraryContext';
 import { View, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { Text } from '@/components/ui/text';
-import { ItineraryFormProvider } from '@/app/(app)/itinerary/create/FormContext';
 
 function CreateItineraryLayoutContent() {
   const router = useRouter();

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import useItineraryForm from '@/contexts/ItineraryContext';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { View, ScrollView, TouchableOpacity, Platform, Alert, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -6,8 +8,6 @@ import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useItineraryForm } from '@/app/(app)/itinerary/create/FormContext';
 import { getStates, getCitiesByState, searchStates, searchCities,getStateByName,State, City } from '@/lib/locations';
 
 type PickerType = 'state' | 'city';
@@ -95,6 +95,35 @@ export default function CreateItineraryStep1() {
       }));
     }
   }, []);
+
+  // Sincroniza datas das hospedagens quando período da viagem muda
+  useEffect(() => {
+    if (accommodations.length === 0) return;
+
+    setAccommodations(prev => {
+      return prev.map((acc, index) => {
+        const updated = { ...acc };
+        
+        if (index === 0) {
+          const currentCheckIn = getStartOfDay(acc.checkInDate);
+          const newArrival = getStartOfDay(arrivalDate);
+          if (currentCheckIn.getTime() !== newArrival.getTime()) {
+            updated.checkInDate = new Date(arrivalDate);
+          }
+        }
+        
+        if (index === prev.length - 1) {
+          const currentCheckOut = getStartOfDay(acc.checkOutDate);
+          const newDeparture = getStartOfDay(departureDate);
+          if (currentCheckOut.getTime() !== newDeparture.getTime()) {
+            updated.checkOutDate = new Date(departureDate);
+          }
+        }
+        
+        return updated;
+      });
+    });
+  }, [arrivalDate, departureDate]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });

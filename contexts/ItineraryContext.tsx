@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-// @TODO: Mover este contexto para uma pasta compartilhada se for utilizado em mais lugares
 
 type Accommodation = {
   id: string;
@@ -89,7 +88,7 @@ export function ItineraryFormProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useItineraryForm() {
+export default function useItineraryForm() {
   const context = useContext(ItineraryContext);
   if (!context) {
     throw new Error('useItineraryForm must be used within ItineraryFormProvider');

@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/text';
 
+// @TODO: Propor background próprio (falar com os meninos do design)
+
 type Itinerary = {
   id: number;
   name: string;
