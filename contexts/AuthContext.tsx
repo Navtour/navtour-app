@@ -1,10 +1,12 @@
-import React, { ReactNode, createContext, useState } from 'react';
+import authService from '@/services/api/auth';
 import {
   AuthContextData,
   LoginCredentials,
   RegisterCredentials,
-  User
+  UserResponse
 } from '@/types/auth';
+import { router } from 'expo-router';
+import React, { ReactNode, createContext, useState } from 'react';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -12,48 +14,50 @@ interface AuthProviderProps {
 
 export const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-const MOCK_USER: User = {
-  id: '1',
-  name: 'Usuário Teste',
-  email: 'teste@exemplo.com',
-  avatar: undefined
-};
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading] = useState(false);
+  const [user, setUser] = useState<UserResponse | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  async function signIn(_credentials: LoginCredentials) {
-    setUser(MOCK_USER);
-  }
+  const signIn = async (credentials: LoginCredentials) => {
+    setLoading(true);
+    try {
+      const response = await authService.login(credentials);
+      setUser(response.usuario);
+    } catch (error: any) {
+      throw new Error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  async function signUp(_credentials: RegisterCredentials) {
-    setUser(MOCK_USER);
-  }
+  async function signUp(_credentials: RegisterCredentials) { }
 
-  async function signOut() {
+  const signOut = async () => {
+    setLoading(true);
+    await authService.logout();
     setUser(null);
-  }
+    setLoading(false);
+    router.replace('/login');
+  };
 
-  async function signInWithGoogle() {
-    setUser(MOCK_USER);
-  }
+  async function signInWithGoogle() { }
 
-  async function resetPassword(_email: string) {
-    // Mock - não faz nada
-  }
+  async function resetPassword(_email: string) { }
+
+  const authData: AuthContextData = {
+    user,
+    loading,
+    signIn,
+    signOut,
+    signUp: async (c: RegisterCredentials) => { console.log('Cadastro não implementado'); },
+    signInWithGoogle: async () => { console.log('Google Sign In não implementado'); },
+    resetPassword: async () => { console.log('Reset Password não implementado'); },
+  };
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        signIn,
-        signUp,
-        signOut,
-        signInWithGoogle,
-        resetPassword,
-      }}
+      value={authData}
     >
       {children}
     </AuthContext.Provider>

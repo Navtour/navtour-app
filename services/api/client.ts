@@ -1,11 +1,9 @@
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { router } from 'expo-router';
 
-const API_BASE_URL = 'localhost:6000';
-
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
