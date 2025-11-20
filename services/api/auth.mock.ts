@@ -11,7 +11,7 @@ export const authMockService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    if (credentials.email === 'admin@admin.admin' && credentials.password === 'admin') {
+    if (credentials.email === 'admin@admin.admin' && credentials.senha === 'admin') {
       return {
         token: 'mock_token_' + Date.now(),
         user: MOCK_USER,
@@ -31,7 +31,7 @@ export const authMockService = {
       token: 'mock_token_' + Date.now(),
       user: { 
         id: '2',
-        name: credentials.username,
+        name: credentials.nome,
         email: credentials.email 
       },
     };
