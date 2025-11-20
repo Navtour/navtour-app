@@ -8,6 +8,9 @@ import { useState } from 'react';
 import { Dimensions, FlatList, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// @TODO: Por default deve ter o filtro atreladoa  localização atual
+// @TODO: Implementar a lógica de filtragem e busca
+
 export default function ExploreScreen() {
   const router = useRouter();
   const [destinosChecked, setDestinosChecked] = useState(true);
@@ -83,26 +86,6 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-secondary px-4 pt-8">
-      <View className="flex-row justify-center space-x-8 mb-6">
-        <View className="flex-row items-center mr-5">
-          <Checkbox
-            checked={destinosChecked}
-            onCheckedChange={setDestinosChecked}
-            className="size-8 mr-2"
-          />
-          <Text className="text-h2 color-primary">Destinos</Text>
-        </View>
-
-        <View className="flex-row items-center">
-          <Checkbox
-            checked={atividadesChecked}
-            onCheckedChange={setAtividadesChecked}
-            className="size-8 mr-2"
-          />
-          <Text className="text-h2 color-primary">Atividades</Text>
-        </View>
-      </View>
-
       <View className="flex-row items-center bg-white rounded-input px-4 shadow-card">
         <Ionicons name="search" size={20} color="#1238b4" />
 

@@ -11,6 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// @TODO: Adicionar uma opção de listagem de roteiros
+// @TODO: Adicionar opção de vincular ponto  um roteiro existente compatível ( deve necessariamente estar no mesmo local )
+//        após selecioanar o roteiro expecífico deve selecionar um dia vago
+
 export default function DetailsScreen() {
     const SCREEN_WIDTH = Dimensions.get("window").width;
     const cardSize = SCREEN_WIDTH * 0.25;
