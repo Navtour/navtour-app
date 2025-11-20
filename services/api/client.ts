@@ -1,11 +1,9 @@
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { router } from 'expo-router';
 
-const API_BASE_URL = 'localhost:6000';
-
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,7 +14,10 @@ api.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem('@navtour:token');
     if (token) {
+      console.debug('[api] attaching token to request');
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.debug('[api] no token found in storage');
     }
     return config;
   },
@@ -29,9 +30,10 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      console.debug('[api] 401 response - clearing storage and redirecting to login');
       await AsyncStorage.removeItem('@navtour:token');
       await AsyncStorage.removeItem('@navtour:user');
-      router.replace('/login'); 
+      router.replace('/login');
     }
     return Promise.reject(error);
   }
