@@ -33,14 +33,16 @@ export const authService = {
   register: async (credentials: RegisterCredentials): Promise<RegisterResponse> => {
     try {
       console.debug('[authService] register request', { email: credentials.email, nome: credentials.nome, cpf: credentials.cpf, telefone: credentials.telefone, data_nascimento: credentials.data_nascimento });
-      const response = await api.post<RegisterResponse>('/api/user', credentials);
+      const response = await api.post<RegisterResponse>('/user', credentials);
       console.debug('[authService] register response', { status: response.status, data: response.data });
       const data = response.data;
       return data;
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || 'Erro ao efetuar registro';
-      console.warn('[authService] register error', { message, error });
-      throw new Error(message);
+      const respData = error?.response?.data;
+      const message = respData?.message || error?.message || 'Erro ao efetuar registro';
+      console.warn('[authService] register error', { message, respData, error });
+      const detailed = respData && typeof respData === 'object' ? JSON.stringify(respData) : undefined;
+      throw new Error(detailed ? `${message}: ${detailed}` : message);
     }
   },
 

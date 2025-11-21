@@ -57,13 +57,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signUp = async (credentials: RegisterCredentials) => {
     setLoading(true);
     try {
-      await authService.register(credentials);
-      const email = credentials.email;
-      try {
-        router.replace(`/login?email=${encodeURIComponent(email)}`);
-      } catch {
-        router.replace('/login');
-      }
+        await authService.register(credentials);
+        return;
     } catch (error: any) {
       console.warn('[AuthProvider] signUp error', error?.message || error);
       throw new Error(error?.message || 'Erro ao cadastrar usuário');

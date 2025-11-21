@@ -47,6 +47,13 @@ export default function RegisterScreen() {
     return `(${area})${rest.slice(0,5)}-${rest.slice(5)}`;
   };
 
+  const phoneSendValue = (display: string) => {
+    const d = onlyDigits(display);
+    const area = d.slice(0, 2);
+    const rest = d.slice(2);
+    return `(${area})${rest}`;
+  };
+
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (event.type === 'dismissed') return;
@@ -206,13 +213,14 @@ export default function RegisterScreen() {
                   nome: username,
                   email,
                   senha: password,
-                  cpf,
-                  telefone,
+                  cpf: cpf.replace(/\D/g, ''),
+                  telefone: phoneSendValue(telefone),
                   data_nascimento: dataNascimento,
                 } as any;
 
                 try {
                   await signUp(payload);
+                  router.replace('/login');
                 } catch (err: any) {
                   setError(err?.message || 'Erro ao cadastrar usuário');
                 }
