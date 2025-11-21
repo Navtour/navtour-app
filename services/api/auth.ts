@@ -1,4 +1,4 @@
-import { LoginCredentials, LoginResponse } from '@/types/auth';
+import { LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './client';
 
@@ -27,6 +27,20 @@ export const authService = {
       const message = error?.response?.data?.message || error?.message || 'Erro ao efetuar login';
       console.warn('[authService] login error', { message, error });
       throw new Error(message);
+    }
+  },
+
+  register: async (credentials: RegisterCredentials): Promise<void> => {
+    try {
+      console.debug('[authService] register request', { email: credentials.email }, { nome: credentials.nome }, { cpf: credentials.cpf }, { telefone: credentials.telefone }, { data_nascimento: credentials.data_nascimento }, { endereco: credentials.endereco });
+      const response = await api.post('/auth/register', credentials);
+      console.debug('[authService] register response', { status: response.status, data: response.data });
+      const data = response.data;
+      return data;
+    } catch (error: any) {
+      const mensage = error?.response?.data?.message || error?.message || 'Erro ao efetuar registro';
+      console.warn('[authService] register error', { mensage, error });
+      throw new Error(mensage);
     }
   },
 
