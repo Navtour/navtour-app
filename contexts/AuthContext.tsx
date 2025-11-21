@@ -54,7 +54,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  async function signUp(_credentials: RegisterCredentials) { }
+  const signUp = async (credentials: RegisterCredentials) => {
+    setLoading(true);
+    try {
+      await authService.register(credentials);
+      const email = credentials.email;
+      try {
+        router.replace(`/login?email=${encodeURIComponent(email)}`);
+      } catch {
+        router.replace('/login');
+      }
+    } catch (error: any) {
+      console.warn('[AuthProvider] signUp error', error?.message || error);
+      throw new Error(error?.message || 'Erro ao cadastrar usuário');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const signOut = async () => {
     setLoading(true);
@@ -73,7 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loading,
     signIn,
     signOut,
-    signUp: async (c: RegisterCredentials) => { console.log('Cadastro não implementado'); },
+    signUp,
     signInWithGoogle: async () => { console.log('Google Sign In não implementado'); },
     resetPassword: async () => { console.log('Reset Password não implementado'); },
   };

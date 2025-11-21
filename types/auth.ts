@@ -32,6 +32,11 @@ export interface LoginResponse {
     usuario: UserResponse; 
 }
 
+export interface RegisterResponse {
+  message: string;
+  usuario: UserResponse;
+}
+
 export interface AuthContextData {
   user: UserResponse | null;
   loading: boolean;

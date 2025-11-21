@@ -1,22 +1,59 @@
-import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { Logo } from '@/components/ui/Logo';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Text } from '@/components/ui/text';
 import { Divider } from '@/components/ui/Divider';
+import { Input } from '@/components/ui/Input';
+import { Logo } from '@/components/ui/Logo';
+import { Text } from '@/components/ui/text';
+import { useAuth } from '@/hooks/useAuth';
+import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { signUp, loading } = useAuth();
+
+  const onlyDigits = (text: string) => text.replace(/\D/g, '');
+
+  const formatCPF = (text: string) => {
+    const d = onlyDigits(text).slice(0, 11);
+    let out = d;
+    if (d.length > 9) out = d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    else if (d.length > 6) out = d.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+    else if (d.length > 3) out = d.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+    return out;
+  };
+
+  const formatPhoneDisplay = (text: string) => {
+    const d = onlyDigits(text).slice(0, 11); 
+    if (d.length <= 2) return d;
+    const area = d.slice(0, 2);
+    const rest = d.slice(2);
+    if (rest.length <= 5) return `(${area})${rest}`;
+    return `(${area})${rest.slice(0,5)}-${rest.slice(5)}`;
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (event.type === 'dismissed') return;
+    const current = selectedDate || new Date();
+    const iso = current.toISOString().slice(0, 10);
+    setDataNascimento(iso);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-secondary">
@@ -68,6 +105,47 @@ export default function RegisterScreen() {
               </View>
 
               <View className="gap-2">
+                <Text className="text-primary font-bold text-sm">CPF</Text>
+                <Input
+                  value={cpf}
+                  onChangeText={(t) => setCpf(formatCPF(t))}
+                  placeholder="000.000.000-00"
+                  keyboardType="default"
+                  autoCapitalize="none"
+                  className="bg-white border-2 border-primary"
+                />
+              </View>
+
+              <View className="gap-2">
+                <Text className="text-primary font-bold text-sm">Telefone</Text>
+                <Input
+                  value={telefone}
+                  onChangeText={(t) => setTelefone(formatPhoneDisplay(t))}
+                  placeholder="(00)00000-0000"
+                  keyboardType="phone-pad"
+                  className="bg-white border-2 border-primary"
+                />
+              </View>
+
+              <View className="gap-2">
+                <Text className="text-primary font-bold text-sm">Data de nascimento</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                  <View className="bg-white border-2 border-primary p-3">
+                    <Text className="text-primary">{dataNascimento || 'YYYY-MM-DD'}</Text>
+                  </View>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={dataNascimento ? new Date(dataNascimento) : new Date(1990, 0, 1)}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleDateChange}
+                    maximumDate={new Date()}
+                  />
+                )}
+              </View>
+
+              <View className="gap-2">
                 <Text className="text-primary font-bold text-sm">Criar senha</Text>
                 <View className="relative">
                   <Input
@@ -113,9 +191,35 @@ export default function RegisterScreen() {
                 </View>
               </View>
 
-              <Button className="bg-primary h-12 mt-2">
-                <Text className="text-secondary font-semibold">Cadastrar</Text>
+              <Button className="bg-primary h-12 mt-2" onPress={async () => {
+                setError(null);
+                if (!username || !email || !password || !confirmPassword) {
+                  setError('Preencha os campos obrigatórios');
+                  return;
+                }
+                if (password !== confirmPassword) {
+                  setError('As senhas não coincidem');
+                  return;
+                }
+
+                const payload = {
+                  nome: username,
+                  email,
+                  senha: password,
+                  cpf,
+                  telefone,
+                  data_nascimento: dataNascimento,
+                } as any;
+
+                try {
+                  await signUp(payload);
+                } catch (err: any) {
+                  setError(err?.message || 'Erro ao cadastrar usuário');
+                }
+              }} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-secondary font-semibold">Cadastrar</Text>}
               </Button>
+              {error ? <Text className="text-destructive text-sm mt-2">{error}</Text> : null}
             </View>
 
             <Divider />

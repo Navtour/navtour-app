@@ -1,11 +1,14 @@
-import { View, Text, ScrollView, TouchableOpacity, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   const router = useRouter();
   
+  const { signOut } = useAuth();
+
   const stats = [
     { icon: 'location', value: '47', label: 'Destinos', color: '#ff6a32' },
     { icon: 'star', value: '892', label: 'Pontos', color: '#1238b4' },
@@ -20,7 +23,7 @@ export default function ProfileScreen() {
   ];
 
   const handleLogout = () => {
-    router.replace('/login');
+    signOut();
   };
 
   return (

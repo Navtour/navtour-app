@@ -5,8 +5,8 @@ import { Logo } from '@/components/ui/Logo';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,6 +18,13 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const { signIn, loading } = useAuth();
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    if (params?.email) {
+      setEmail(String(params.email));
+    }
+  }, [params?.email]);
 
   const handleLogin = async () => {
     setError(null);
